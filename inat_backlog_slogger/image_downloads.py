@@ -1,28 +1,20 @@
 #!/usr/bin/env python
-"""Utilities to process inputs and outputs for image quality assessment"""
+"""Utilities to download observation images for image quality assessment"""
 import asyncio
-import json
 import re
 from datetime import datetime
 from logging import getLogger
 from os import makedirs
-from os.path import basename, isfile, join, splitext
+from os.path import isfile, join
 
 import aiofiles
 import aiohttp
-import requests
-import requests_cache
 from rich.progress import Progress
 
-from examples.observation_custom_ranking import (
-    CSV_COMBINED_EXPORT,
-    DATA_DIR,
-    IQA_REPORTS,
-    PHOTO_ID_PATTERN,
-    load_observations_from_export,
-)
+from .constants import IMAGE_DIR
+from .observations import load_observations_from_export
 
-IMAGE_DIR = join(DATA_DIR, 'images')
+PHOTO_ID_PATTERN = re.compile(r'.*photos/(.*)/.*\.(\w+)')
 logger = getLogger(__name__)
 
 
@@ -50,6 +42,12 @@ def get_image_path(image_url):
     else:
         filename = image_url.rsplit('/', 1)[1]
     return join(IMAGE_DIR, filename)
+
+
+def get_photo_id(image_url):
+    """Get a photo ID from its URL (for CSV exports, which only include a URL)"""
+    match = re.match(PHOTO_ID_PATTERN, str(image_url))
+    return match.group(1) if match else ''
 
 
 async def download_images(urls):
@@ -107,44 +105,7 @@ async def download_image(
     progress.update(task, advance=1)
 
 
-def append_iqa_scores(df):
-    """Load image quality assessment scores and append to a dataframe of observation records"""
-    # Sort user IDs by number of observations (in the current dataset) per user
-    scores = load_iqa_scores()
-
-    first_result = list(scores.values())[0]
-    for key in first_result.keys():
-        logger.info(f'Updating observations with {key}')
-        df[key] = df['photo.id'].apply(lambda x: scores.get(x, {}).get(key))
-    return df
-
-
-def load_iqa_scores():
-    """Load scores from one or more image quality assessment output files"""
-    logger.info(f'Loading image quality assessment data')
-    combined_scores = {}
-    for file_path in IQA_REPORTS:
-        with open(file_path) as f:
-            scores = json.load(f)
-
-        key = splitext(basename(file_path))[0]
-        scores = {int(i['image_id']): {key: i['mean_score_prediction']} for i in scores}
-        combined_scores.update(scores)
-
-    combined_scores = dict(sorted(combined_scores.items(), key=lambda x: x[1][key]))
-    return combined_scores
-
-
-def main():
-    # Download observation images
+if __name__ == '__main__':
     df = load_observations_from_export()
     image_urls = get_original_image_urls(df)
     asyncio.run(download_images(image_urls))
-
-    # TODO: Running IQA model goes here
-    df = append_iqa_scores(df)
-    df.to_csv(CSV_COMBINED_EXPORT)
-
-
-if __name__ == '__main__':
-    main()
