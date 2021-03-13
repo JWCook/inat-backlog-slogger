@@ -1,16 +1,12 @@
-from os.path import dirname, join
-
 import pandas as pd
 from jinja2 import Template
 
-from inat_backlog_slogger.constants import MINIFIED_EXPORT
-from inat_backlog_slogger.observations import load_observations_from_export
-
-REPORT_TEMPLATE = join(dirname(__file__), 'observation_template.html')
+from inat_backlog_slogger.constants import MINIFIED_OBSERVATIONS, REPORT_TEMPLATE
+from inat_backlog_slogger.observations import load_observations
 
 
 def generate_report(file_path, df=None):
-    observations = load_observations(df)
+    observations = load_minified_observations(df)
     observation_chunks = list(ka_chunk(observations, 4))
     with open(REPORT_TEMPLATE) as f:
         template = Template(f.read())
@@ -22,16 +18,16 @@ def generate_report(file_path, df=None):
 
 def ka_chunk(data, chunk_size):
     for i in range(0, len(data), chunk_size):
-        yield data[i:i + chunk_size]
+        yield data[i : i + chunk_size]
 
 
-def load_observations(df=None):
+def load_minified_observations(df=None):
     """Load minified observation data"""
-    df = df if df is not None else pd.read_json(MINIFIED_EXPORT)
+    df = df if df is not None else pd.read_json(MINIFIED_OBSERVATIONS)
     return df.to_dict('records')
 
 
-def minify_observations(df):
+def save_minified_observations(df):
     """Get minimal info for ranked and sorted observations"""
 
     def get_default_photo(photos):
@@ -43,10 +39,13 @@ def minify_observations(df):
         df['photo'] = df['photos'].apply(get_default_photo)
     else:
         df['photo'] = df['photo.url']
-    return df[['id', 'taxon', 'photo']]
+
+    df = df[['id', 'taxon', 'photo']]
+    df.to_json(MINIFIED_OBSERVATIONS)
+    return df
 
 
 if __name__ == '__main__':
-    df = load_observations_from_export()
-    minify_observations(df).to_json(MINIFIED_EXPORT)
+    df = load_observations()
+    save_minified_observations(df)
     generate_report('report.html', df)

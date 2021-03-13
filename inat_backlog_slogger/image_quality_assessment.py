@@ -5,7 +5,7 @@ from logging import getLogger
 from os.path import basename, splitext
 
 from inat_backlog_slogger.constants import IQA_REPORTS
-from inat_backlog_slogger.observations import load_observations_from_export, save_observations
+from inat_backlog_slogger.observations import load_observations, save_observations
 
 logger = getLogger(__name__)
 
@@ -42,6 +42,6 @@ def load_iqa_scores():
 
 # Add IQA scores to an existing observation export
 if __name__ == '__main__':
-    df = load_observations_from_export()
+    df = load_observations()
     df = append_iqa_scores(df)
     save_observations(df)
