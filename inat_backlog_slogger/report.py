@@ -3,14 +3,44 @@ from logging import getLogger
 import pandas as pd
 from jinja2 import Template
 
-from inat_backlog_slogger.constants import MINIFIED_OBSERVATIONS, REPORT_TEMPLATE
+from inat_backlog_slogger.constants import MINIFIED_OBSERVATIONS, RANKING_WEIGHTS, REPORT_TEMPLATE
 from inat_backlog_slogger.observations import load_observations
 
 logger = getLogger(__name__)
 
 
+def get_ranking_values(row):
+    """Format values used in ranking to be shown on hover"""
+    return {col: f'{row[col]:.3f}' for col in ['rank'] + list(RANKING_WEIGHTS)}
+
+
+def format_taxon_str(row) -> str:
+    """Format a taxon name including common name, if available"""
+    common_name = row.get('taxon.preferred_common_name')
+    return f"{row['taxon.name']}" + (f' ({common_name})' if common_name else '')
+
+
 def generate_report(file_path: str, df, top: int = None, bottom: int = None):
-    # Get highest or lowest-ranked items, if specified; omit any that haven't been ranked
+    """Generate an HTML report from the specified observations"""
+    df = get_observation_subset(df, top, bottom)
+    df['ranking_values'] = df.apply(get_ranking_values, axis=1)
+    df['taxon.formatted_name'] = df.apply(format_taxon_str, axis=1)
+    observations = df.to_dict('records')
+    observation_chunks = list(ka_chunk(observations, 4))
+
+    with open(REPORT_TEMPLATE) as f:
+        template = Template(f.read())
+
+    report = template.render(observation_chunks=observation_chunks)
+    report = report.replace('  ', ' ').replace('\n', '')
+    with open(file_path, 'w') as f:
+        f.write(report)
+
+    return df
+
+
+def get_observation_subset(df, top: int = None, bottom: int = None):
+    """Get highest or lowest-ranked items, if specified, and omit any that haven't been ranked"""
     df = df[df['photo.iqa_technical'] != 0]
     if top:
         selection = f'top {top}'
@@ -21,17 +51,6 @@ def generate_report(file_path: str, df, top: int = None, bottom: int = None):
     else:
         selection = str(len(df))
     logger.info(f'Generating report from {selection} observations')
-
-    observations = df.to_dict('records')
-    observation_chunks = list(ka_chunk(observations, 4))
-
-    with open(REPORT_TEMPLATE) as f:
-        template = Template(f.read())
-
-    report = template.render(observation_chunks=observation_chunks)
-    with open(file_path, 'w') as f:
-        f.write(report)
-
     return df
 
 
