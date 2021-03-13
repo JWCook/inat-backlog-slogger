@@ -4,8 +4,8 @@ import json
 from logging import getLogger
 from os.path import basename, splitext
 
-from .constants import CSV_COMBINED_EXPORT, IQA_REPORTS
-from .observations import load_observations_from_export
+from inat_backlog_slogger.constants import IQA_REPORTS
+from inat_backlog_slogger.observations import load_observations_from_export, save_observations
 
 logger = getLogger(__name__)
 
@@ -24,21 +24,24 @@ def append_iqa_scores(df):
 
 def load_iqa_scores():
     """Load scores from one or more image quality assessment output files"""
-    logger.info('Loading image quality assessment data')
     combined_scores = {}
     for file_path in IQA_REPORTS:
+        logger.info(f'Loading image quality assessment data: {file_path}')
         with open(file_path) as f:
             scores = json.load(f)
 
-        key = splitext(basename(file_path))[0]
+        key = f'photo.{splitext(basename(file_path))[0]}'
         scores = {int(i['image_id']): {key: i['mean_score_prediction']} for i in scores}
-        combined_scores.update(scores)
+        for k, v in scores.items():
+            combined_scores.setdefault(k, {})
+            combined_scores[k].update(v)
 
-    combined_scores = dict(sorted(combined_scores.items(), key=lambda x: x[1][key]))
+    # combined_scores = dict(sorted(combined_scores.items(), key=lambda x: x[1][key]))
     return combined_scores
 
 
+# Add IQA scores to an existing observation export
 if __name__ == '__main__':
     df = load_observations_from_export()
     df = append_iqa_scores(df)
-    df.to_csv(CSV_COMBINED_EXPORT)
+    save_observations(df)
