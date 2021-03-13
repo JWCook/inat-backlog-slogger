@@ -18,7 +18,6 @@ from pprint import pprint
 
 import requests
 from bs4 import BeautifulSoup
-
 from pyinaturalist.node_api import get_observation
 from pyinaturalist.rest_api import get_access_token
 
