@@ -19,7 +19,6 @@ from inat_backlog_slogger.constants import (
     CSV_EXPORTS,
     DATA_DIR,
     ICONIC_TAXON,
-    MINIFIED_EXPORT,
     RANKING_WEIGHTS,
 )
 
@@ -128,33 +127,13 @@ def format_export(df):
     return df
 
 
-def minify_observations(df):
-    """Get minimal info for ranked and sorted observations"""
-
-    def get_default_photo(photos):
-        return photos[0]['url'].rsplit('/', 1)[0]
-
-    df['taxon.rank'] = df['taxon.rank'].apply(lambda x: f'{x.title()}: ')
-    df['taxon'] = df['taxon.rank'] + df['taxon.name']
-    if 'photos' in df:
-        df['photo'] = df['photos'].apply(get_default_photo)
-    else:
-        df['photo'] = df['photo.url']
-    return df[['id', 'taxon', 'photo']]
-
-
 def main(source='export'):
     if source == 'api':
         df = load_observations_from_query(ICONIC_TAXON)
     else:
         df = load_observations_from_export()
     df = rank_observations(df)
-
-    # Save full and minimal results
     save_observations(df)
-    minify_observations(df).to_json(MINIFIED_EXPORT)
-
-    return df
 
 
 if __name__ == '__main__':
