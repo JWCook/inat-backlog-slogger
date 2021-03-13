@@ -42,6 +42,7 @@
         .hover_container,
         .hover_container * {
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .hover_container .hover_overlay {
@@ -79,24 +80,30 @@
                         </a>
                     </div>
 
-                    <!--Long Description-->
+                    <!--More details on hover-->
                     <a href="https://www.inaturalist.org/observations/{{ observation['id'] }}">
                         <div class="hover_overlay">
-                          Observed {{ 'by' + observation['user.login'] }} on {{ observation['observed_on'] }}
-                          <br><b>IDs:</b>
-                          {{ observation['num_identification_agreements'] }} agreements,
-                          {{ observation['num_identification_disagreements'] }} disagreements
+                            <br><b>IDs:</b>
+                            {{ observation['num_identification_agreements'] }} agreements,
+                            {{ observation['num_identification_disagreements'] }} disagreements
+                            <br><b>Created at:</b> {{ observation['created_at'] }}
+                            <br><b>Updated at:</b> {{ observation['updated_at'] }}
+                            <br><b>Ranking values:</b>
+                            {% for k, v in observation['ranking_values'].items() %}
+                            {{ '<br>&emsp;<b>' + k + ':</b> ' + v }}
+                            {% endfor %}
+                            <br><b>Description:</b> {{ observation['description'] }}
                         </div>
                     </a>
                 </div>
 
-                <!--Short Description-->
+                <!--Basic details-->
                 <div>
-                    <h4><b>{{ observation['taxon.rank'].title() }}:</b>
+                    <h5><b>{{ observation['taxon.rank'].title() }}:</b>
                         <a href="https://www.inaturalist.org/taxa/{{ observation['taxon.id'] }}">
-                            {{ observation['taxon.name'] }}
+                            {{ observation['taxon.formatted_name'] }}
                         </a>
-                    </h4>
+                    </h5>
                     <p>
                         <b>Observed by:</b>
                         <a href="https://www.inaturalist.org/people/{{ observation['user.id'] }}">
