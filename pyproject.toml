@@ -10,7 +10,7 @@ directory = 'test-reports'
 
 [tool.coverage.run]
 branch = true
-source = ['pyinaturalist']
+source = ['inat_backlog_slogger']
 
 [tool.isort]
 profile = "black"
