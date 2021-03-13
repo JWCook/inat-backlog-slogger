@@ -14,6 +14,12 @@ RANKING_WEIGHTS = {
     'user.observations_count':                 0.1,   # Total observations (all taxa)
     'user.identifications_count':              0.1,   # Total identifications (all taxa)
 }
+RANK_BY_NATURAL_LOG = [
+    'user.iconic_taxon_identifications_count',
+    'user.iconic_taxon_rg_observations_count',
+    'user.observations_count',
+    'user.identifications_count',
+]
 
 # Explicit datatypes for columns loaded from CSV
 # TODO: support glob patterns (num_*, *_count, *.id, etc.)
