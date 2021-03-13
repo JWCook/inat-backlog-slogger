@@ -16,6 +16,7 @@ setup(
         'aiohttp',
         'jinja2',
         'pandas',
+        'pyarrow',
         'pyinaturalist==0.13.0.dev221',
         'rich',
     ],

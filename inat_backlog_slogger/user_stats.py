@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-"""Utilities for downloading observer information"""
+"""Utilities for downloading observer user information"""
 import json
 from logging import getLogger
-from os.path import isfile, join
+from os.path import isfile
 from time import sleep
 
 from pyinaturalist.node_api import get_identifications, get_observations, get_user_by_id
 from pyinaturalist.request_params import ICONIC_TAXA
 from rich.progress import track
 
-from inat_backlog_slogger.constants import DATA_DIR, ICONIC_TAXON, THROTTLING_DELAY
-from inat_backlog_slogger.observations import load_observations_from_export, save_observations
+from inat_backlog_slogger.constants import ICONIC_TAXON, THROTTLING_DELAY, USER_STATS
+from inat_backlog_slogger.observations import load_observations, save_observations
 
-USER_STATS_FILE = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 logger = getLogger(__name__)
 
 
@@ -29,6 +28,7 @@ def append_user_stats(df):
     return df
 
 
+# TODO: Process as a dataframe instead of a dict, save/load as parquet files instead of JSON
 def get_all_user_stats(user_ids, user_records=None):
     """Get some additional information about observers"""
     iconic_taxa_lookup = {v.lower(): k for k, v in ICONIC_TAXA.items()}
@@ -38,8 +38,8 @@ def get_all_user_stats(user_ids, user_records=None):
     user_records = user_records or {}
 
     # Load previously saved stats, if any
-    if isfile(USER_STATS_FILE):
-        with open(USER_STATS_FILE) as f:
+    if isfile(USER_STATS):
+        with open(USER_STATS) as f:
             user_info = {int(k): v for k, v in json.load(f).items()}
         logger.info(f'{len(user_info)} partial results loaded')
 
@@ -59,15 +59,16 @@ def get_all_user_stats(user_ids, user_records=None):
             user_info[user_id] = get_user_stats(user_id, iconic_taxon_id, user_records.get(user_id))
         except (Exception, KeyboardInterrupt) as e:
             logger.exception(e)
-            logger.error(f'Aborting and saving partial results to {USER_STATS_FILE}')
+            logger.error(f'Aborting and saving partial results to {USER_STATS}')
             break
 
-    with open(USER_STATS_FILE, 'w') as f:
+    with open(USER_STATS, 'w') as f:
         json.dump(user_info, f)
 
     return user_info
 
 
+# TODO: Store stats for multiple taxa in same file; will need additional checks & handling
 def get_user_stats(user_id, iconic_taxon_id, user=None):
     """Get info for an individual user"""
     logger.debug(f'Getting stats for user {user_id}')
@@ -98,6 +99,6 @@ def get_user_stats(user_id, iconic_taxon_id, user=None):
 
 # Add user info to an existing observation export
 if __name__ == '__main__':
-    df = load_observations_from_export()
+    df = load_observations()
     df = append_user_stats(df)
     save_observations(df)

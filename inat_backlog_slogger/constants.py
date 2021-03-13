@@ -1,4 +1,5 @@
-from os.path import expanduser, join
+# flake8: noqa: E241
+from os.path import dirname, expanduser, join
 
 # TODO: Make this a parameter to all relevant functions instead of a constant
 ICONIC_TAXON = 'Arachnida'
@@ -14,14 +15,61 @@ RANKING_WEIGHTS = {
     'user.identifications_count':              0.1,   # Total identifications (all taxa)
 }
 
-# Files & directories
+# Explicit datatypes for columns loaded from CSV
+# TODO: support glob patterns (num_*, *_count, *.id, etc.)
+DTYPES = {
+    'coordinates_obscured': bool,
+    'id': int,
+    'latitude': float,
+    'longitude': float,
+    'num_identification_agreements': int,
+    'num_identification_disagreements': int,
+    'photo.id': int,
+    'photo.iqa_aesthetic': float,
+    'photo.iqa_technical': float,
+    'positional_accuracy': float,
+    'public_positional_accuracy': float,
+    'taxon.id': int,
+    'user.activity_count': int,
+    'user.iconic_taxon_identifications_count': int,
+    'user.iconic_taxon_rg_observations_count': int,
+    'user.id': int,
+    'user.identifications_count': int,
+    'user.journal_posts_count': int,
+    'user.observations_count': int,
+    'user.site_id': int,
+    'user.spam': bool,
+    'user.species_count': int,
+    'user.suspended': bool,
+}
+
+# CSV columns to drop or column name substrings to replace
+DROP_COLUMNS = [
+    'observed_on_string',
+    'positioning_method',
+    'positioning_device',
+    'scientific',
+    'time_observed_at',
+    'time_zone',
+    'user.universal_search_rank',
+]
+RENAME_COLUMNS = {
+    'common_name': 'taxon.preferred_common_name',
+    'image_url': 'photo.url',
+    'taxon_': 'taxon.',
+    'user_': 'user.',
+    '_name': '',
+}
+
+# Files & directories; different data sources are stored separately to support incremental results
 DATA_DIR = join(expanduser('~'), 'Downloads')
 CACHE_FILE = join(DATA_DIR, 'inat_requests.db')
 CSV_EXPORTS = join(DATA_DIR, 'observations-*.csv')
-CSV_COMBINED_EXPORT = join(DATA_DIR, 'combined-observations.csv')
-IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
 IMAGE_DIR = join(DATA_DIR, 'images')
-MINIFIED_EXPORT = join(DATA_DIR, 'minified_observations.json')
+IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
+MINIFIED_OBSERVATIONS = join(DATA_DIR, 'minified_observations.json')
+PROCESSED_OBSERVATIONS = join(DATA_DIR, 'combined-observations.parquet')
+REPORT_TEMPLATE = join(dirname(__file__), 'observation_template.html')
+USER_STATS = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 
-
-THROTTLING_DELAY = 2.0
+THROTTLING_DELAY = 2.5
