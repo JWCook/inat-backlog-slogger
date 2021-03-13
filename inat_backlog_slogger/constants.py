@@ -6,12 +6,12 @@ ICONIC_TAXON = 'Arachnida'
 # Note: all values are normalized before ranking weights are applied.
 # fmt: off
 RANKING_WEIGHTS = {
-    'iqa_technical':                      2.0,   # Image quality assessment score
-    'iqa_aesthetic':                      1.0,   # Secondary image quality assessment score
-    'iconic_taxon_rg_observations_count': 1.5,   # Number of research-grade observations for ICONIC_TAXON
-    'iconic_taxon_identifications_count': 2.0,   # Number of identifications for ICONIC_TAXON
-    'observations_count':                 0.1,   # Total observations (all taxa)
-    'identifications_count':              0.1,   # Total identifications (all taxa)
+    'photo.iqa_technical':                     9.0,   # Image quality assessment score
+    'photo.iqa_aesthetic':                     7.0,   # Secondary image quality assessment score
+    'user.iconic_taxon_rg_observations_count': 0.3,   # Number of research-grade observations for ICONIC_TAXON
+    'user.iconic_taxon_identifications_count': 0.5,   # Number of identifications for ICONIC_TAXON
+    'user.observations_count':                 0.1,   # Total observations (all taxa)
+    'user.identifications_count':              0.1,   # Total identifications (all taxa)
 }
 
 # Files & directories

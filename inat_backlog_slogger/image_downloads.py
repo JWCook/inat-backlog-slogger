@@ -11,8 +11,8 @@ import aiofiles
 import aiohttp
 from rich.progress import Progress
 
-from .constants import IMAGE_DIR
-from .observations import load_observations_from_export
+from inat_backlog_slogger.constants import IMAGE_DIR
+from inat_backlog_slogger.observations import load_observations_from_export
 
 PHOTO_ID_PATTERN = re.compile(r'.*photos/(.*)/.*\.(\w+)')
 logger = getLogger(__name__)
@@ -105,6 +105,7 @@ async def download_image(
     progress.update(task, advance=1)
 
 
+# Download images for an existing observation export
 if __name__ == '__main__':
     df = load_observations_from_export()
     image_urls = get_original_image_urls(df)

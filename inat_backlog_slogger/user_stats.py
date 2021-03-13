@@ -9,8 +9,8 @@ from pyinaturalist.node_api import get_identifications, get_observations, get_us
 from pyinaturalist.request_params import ICONIC_TAXA
 from rich.progress import track
 
-from .constants import CSV_COMBINED_EXPORT, DATA_DIR, ICONIC_TAXON, THROTTLING_DELAY
-from .observations import load_observations_from_export
+from inat_backlog_slogger.constants import DATA_DIR, ICONIC_TAXON, THROTTLING_DELAY
+from inat_backlog_slogger.observations import load_observations_from_export, save_observations
 
 USER_STATS_FILE = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 logger = getLogger(__name__)
@@ -96,7 +96,8 @@ def get_user_stats(user_id, iconic_taxon_id, user=None):
     return user
 
 
+# Add user info to an existing observation export
 if __name__ == '__main__':
     df = load_observations_from_export()
     df = append_user_stats(df)
-    df.to_csv(CSV_COMBINED_EXPORT)
+    save_observations(df)

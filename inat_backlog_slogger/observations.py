@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 # flake8: noqa: E241
 """Utilities for loading and querying observation data"""
-import json
-import re
 from datetime import datetime, timedelta
 from logging import getLogger
 from os import makedirs
-from os.path import expanduser, isfile, join
+from os.path import isfile
 
 import pandas as pd
 import requests_cache
-from pyinaturalist.constants import THROTTLING_DELAY
 from pyinaturalist.node_api import get_observations
-from pyinaturalist.request_params import ICONIC_TAXA, RANKS
+from pyinaturalist.request_params import RANKS
 from pyinaturalist.response_format import try_datetime
 from pyinaturalist.response_utils import load_exports, to_dataframe
-from rich.progress import track
 
-from .constants import CACHE_FILE, CSV_COMBINED_EXPORT, MINIFIED_EXPORT
-from .image_downloads import get_photo_id
+from inat_backlog_slogger.constants import (
+    CACHE_FILE,
+    CSV_COMBINED_EXPORT,
+    CSV_EXPORTS,
+    DATA_DIR,
+    ICONIC_TAXON,
+    MINIFIED_EXPORT,
+    RANKING_WEIGHTS,
+)
 
 logger = getLogger(__name__)
 requests_cache.install_cache(backend='sqlite', cache_name=CACHE_FILE)
@@ -31,7 +34,8 @@ def rank_observations(df):
         return (series - series.mean()) / series.std()
 
     df['rank'] = sum([normalize(df[key]) * weight for key, weight in RANKING_WEIGHTS.items()])
-    return df.sort_values('rank')
+    df['rank'].fillna(0)
+    return df.sort_values('rank', ascending=False)
 
 
 def load_observations_from_query(iconic_taxon=ICONIC_TAXON, days=60, **request_params):
@@ -65,8 +69,18 @@ def load_observations_from_export():
     return df
 
 
+def save_observations(df):
+    for k in RANKING_WEIGHTS:
+        if k in df:
+            df[k] = df[k].apply(lambda x: x or 0.0).astype(float)
+    logger.info(f'Saving observations to {CSV_COMBINED_EXPORT}')
+    df.to_csv(CSV_COMBINED_EXPORT)
+
+
 def format_export(df):
     """Format an exported CSV file to be similar to API response format"""
+    from inat_backlog_slogger.image_downloads import get_photo_id
+
     logger.info(f'Formatting {len(df)} observation records')
     replace_strs = {
         'common_name': 'taxon.preferred_common_name',
@@ -105,13 +119,13 @@ def format_export(df):
         return ''
 
     # Fill out taxon name and rank
+    df = df.fillna('')
     df['taxon.rank'] = df.apply(get_min_rank, axis=1)
     df['taxon.name'] = df.apply(lambda x: x.get(f"taxon.{x['taxon.rank']}"), axis=1)
 
     # Add some other missing columns
     df['photo.id'] = df['photo.url'].apply(get_photo_id)
-
-    return df.fillna('')
+    return df
 
 
 def minify_observations(df):
@@ -122,7 +136,10 @@ def minify_observations(df):
 
     df['taxon.rank'] = df['taxon.rank'].apply(lambda x: f'{x.title()}: ')
     df['taxon'] = df['taxon.rank'] + df['taxon.name']
-    df['photo'] = df['photos'].apply(get_default_photo)
+    if 'photos' in df:
+        df['photo'] = df['photos'].apply(get_default_photo)
+    else:
+        df['photo'] = df['photo.url']
     return df[['id', 'taxon', 'photo']]
 
 
@@ -134,7 +151,7 @@ def main(source='export'):
     df = rank_observations(df)
 
     # Save full and minimal results
-    df.to_csv(CSV_COMBINED_EXPORT)
+    save_observations(df)
     minify_observations(df).to_json(MINIFIED_EXPORT)
 
     return df
