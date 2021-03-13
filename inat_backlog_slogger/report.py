@@ -1,4 +1,6 @@
 from logging import getLogger
+from os import makedirs
+from os.path import dirname
 
 import pandas as pd
 from jinja2 import Template
@@ -33,6 +35,7 @@ def generate_report(file_path: str, df, top: int = None, bottom: int = None):
 
     report = template.render(observation_chunks=observation_chunks)
     report = report.replace('  ', ' ').replace('\n', '')
+    makedirs(dirname(file_path), exist_ok=True)
     with open(file_path, 'w') as f:
         f.write(report)
 
@@ -85,4 +88,5 @@ def save_minified_observations(df):
 if __name__ == '__main__':
     df = load_observations()
     save_minified_observations(df)
-    generate_report('report.html', df)
+    generate_report('example_reports/top_500.html', df, top=500)
+    generate_report('example_reports/bottom_500.html', df, bottom=500)
