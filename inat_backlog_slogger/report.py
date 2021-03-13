@@ -1,13 +1,30 @@
+from logging import getLogger
+
 import pandas as pd
 from jinja2 import Template
 
 from inat_backlog_slogger.constants import MINIFIED_OBSERVATIONS, REPORT_TEMPLATE
 from inat_backlog_slogger.observations import load_observations
 
+logger = getLogger(__name__)
 
-def generate_report(file_path, df=None):
-    observations = load_minified_observations(df)
+
+def generate_report(file_path: str, df, top: int = None, bottom: int = None):
+    # Get highest or lowest-ranked items, if specified; omit any that haven't been ranked
+    df = df[df['photo.iqa_technical'] != 0]
+    if top:
+        selection = f'top {top}'
+        df = df.iloc[:top].copy()
+    elif bottom:
+        selection = f'bottom {bottom}'
+        df = df.iloc[-bottom:].copy()
+    else:
+        selection = str(len(df))
+    logger.info(f'Generating report from {selection} observations')
+
+    observations = df.to_dict('records')
     observation_chunks = list(ka_chunk(observations, 4))
+
     with open(REPORT_TEMPLATE) as f:
         template = Template(f.read())
 
@@ -15,16 +32,17 @@ def generate_report(file_path, df=None):
     with open(file_path, 'w') as f:
         f.write(report)
 
+    return df
+
 
 def ka_chunk(data, chunk_size):
     for i in range(0, len(data), chunk_size):
         yield data[i : i + chunk_size]
 
 
-def load_minified_observations(df=None):
+def load_minified_observations():
     """Load minified observation data"""
-    df = df if df is not None else pd.read_json(MINIFIED_OBSERVATIONS)
-    return df.to_dict('records')
+    return pd.read_json(MINIFIED_OBSERVATIONS)
 
 
 def save_minified_observations(df):
