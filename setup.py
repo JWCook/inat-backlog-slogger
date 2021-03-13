@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'aiofiles',
         'aiohttp',
+        'jinja2',
         'pandas',
         'pyinaturalist==0.13.0.dev221',
         'rich',
