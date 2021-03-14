@@ -47,6 +47,10 @@ DTYPES = {
     'user.spam': bool,
     'user.species_count': int,
     'user.suspended': bool,
+    # 'observed_on': 'datetime64',
+    # 'created_at': 'datetime64',
+    # 'updated_at': 'datetime64',
+    # 'user.created_at': 'datetime64',
 }
 
 # CSV columns to drop or column name substrings to replace
@@ -78,4 +82,4 @@ PROCESSED_OBSERVATIONS = join(DATA_DIR, 'combined-observations.parquet')
 REPORT_TEMPLATE = join(dirname(__file__), 'observation_template.html')
 USER_STATS = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 
-THROTTLING_DELAY = 2.5
+THROTTLING_DELAY = 3.0

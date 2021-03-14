@@ -4,33 +4,92 @@ import asyncio
 import re
 from datetime import datetime
 from logging import getLogger
-from os import makedirs
-from os.path import isfile, join
+from os import listdir, makedirs
+from os.path import basename, join
 
 import aiofiles
 import aiohttp
-from rich.progress import Progress
+from rich.progress import Console, Progress, track
 
-from inat_backlog_slogger.constants import IMAGE_DIR
+from inat_backlog_slogger.constants import IMAGE_DIR, THROTTLING_DELAY
 from inat_backlog_slogger.observations import load_observations
 
 PHOTO_ID_PATTERN = re.compile(r'.*photos/(.*)/.*\.(\w+)')
 logger = getLogger(__name__)
 
 
+async def download_images(urls, throttle=True):
+    download_info = check_downloaded_images(urls)
+
+    with Progress() as progress:
+        # Set up progress bar
+        task = progress.add_task("[cyan]Downloading...", total=len(urls))
+        progress.update(task, advance=len(urls) - len(download_info))
+
+        start_time = datetime.now()
+        async with aiohttp.ClientSession() as session:
+            download_tasks = [
+                download_image(session, url, file_path, progress, task)
+                for url, file_path in download_info.items()
+            ]
+            if throttle:
+                for download_task in download_tasks:
+                    await download_task
+                    await asyncio.sleep(THROTTLING_DELAY)
+            else:
+                await asyncio.gather(*download_tasks)
+
+    logger.info(f'Downloaded {len(urls)} images in {datetime.now() - start_time}s')
+
+
+# TODO: This is pretty slow for large datasets. Maybe save list in between runs?
+def check_downloaded_images(urls):
+    """Get local file paths for URLs, and remove images that we've already downloaded"""
+    makedirs(IMAGE_DIR, exist_ok=True)
+    console = Console()
+    console.print('Checking for completed downloads')
+    to_download = {url: get_image_path(url) for url in urls}
+    downloaded_images = listdir(IMAGE_DIR)
+
+    to_download = {
+        url: path for url, path in track(list(to_download.items()))
+        if basename(path) not in downloaded_images
+    }
+    console.print(
+        f'{len(urls) - len(to_download)} images already downloaded, ',
+        f'{len(to_download)} remaining',
+    )
+    return to_download
+
+
+async def download_image(
+    session: aiohttp.ClientSession, url: str, file_path: str, progress: Progress, task
+):
+    try:
+        async with session.get(url) as response:
+            assert response.status == 200
+            async with aiofiles.open(file_path, 'wb') as f:
+                await f.write(await response.read())
+        progress.console.print(f'Downloaded {url} to {file_path}')
+    except Exception as e:
+        progress.console.print(f'Download for {url} failed: {str(e)}')
+
+    progress.update(task, advance=1)
+
+
 def get_original_image_urls(df):
-    """Given an image URL (of any size), return the URL for the largest size image"""
     logger.info('Getting image URLs')
-
-    def get_original_image_url(image_url):
-        if not str(image_url).startswith('http'):
-            return None
-        for size in ('square', 'small', 'medium', 'large'):
-            image_url = image_url.replace(size, 'original')
-        return image_url
-
-    urls = [get_original_image_url(url) for url in df['photo.url'].unique()]
+    urls = [get_image_url(url, 'original') for url in df['photo.url'].unique()]
     return sorted(filter(None, urls))
+
+
+def get_image_url(image_url, target_size='original'):
+    """Given an image URL (of any size), return the URL for the specified size"""
+    if not str(image_url).startswith('http'):
+        return None
+    for size in ('square', 'small', 'medium', 'large', 'original'):
+        image_url = image_url.replace(size, target_size)
+    return image_url
 
 
 def get_image_path(image_url):
@@ -48,61 +107,6 @@ def get_photo_id(image_url):
     """Get a photo ID from its URL (for CSV exports, which only include a URL)"""
     match = re.match(PHOTO_ID_PATTERN, str(image_url))
     return match.group(1) if match else ''
-
-
-async def download_images(urls):
-    download_info = check_downloaded_images(urls)
-
-    with Progress() as progress:
-        # Set up progress bar
-        task = progress.add_task("[cyan]Downloading...", total=len(urls))
-        progress.update(task, advance=len(urls) - len(download_info))
-
-        start_time = datetime.now()
-        async with aiohttp.ClientSession() as session:
-            tasks = [
-                download_image(session, url, file_path, progress, task)
-                for url, file_path in download_info.items()
-            ]
-            await asyncio.gather(*tasks)
-
-    logger.info(f'Downloaded {len(urls)} images in {datetime.now() - start_time}s')
-
-
-def check_downloaded_images(urls):
-    """Get local file paths for URLs, and remove images that we've already downloaded"""
-    makedirs(IMAGE_DIR, exist_ok=True)
-    with Progress(transient=True) as progress:
-        progress.console.print('Checking for completed downloads')
-        task = progress.add_task("[cyan]Checking...", total=len(urls))
-        download_info = {url: get_image_path(url) for url in urls}
-
-        for url, path in list(download_info.items()):
-            if isfile(path):
-                download_info.pop(url)
-            progress.update(task, advance=1)
-
-        progress.console.print(
-            f'{len(urls) - len(download_info)} images already downloaded, ',
-            f'{len(download_info)} remaining',
-        )
-
-    return download_info
-
-
-async def download_image(
-    session: aiohttp.ClientSession, url: str, file_path: str, progress: Progress, task
-):
-    try:
-        async with session.get(url) as response:
-            assert response.status == 200
-            async with aiofiles.open(file_path, 'wb') as f:
-                await f.write(await response.read())
-        progress.console.print(f'Downloaded {url} to {file_path}')
-    except Exception as e:
-        progress.console.print(f'Download for {url} failed: {str(e)}')
-
-    progress.update(task, advance=1)
 
 
 # Download images for an existing observation export
