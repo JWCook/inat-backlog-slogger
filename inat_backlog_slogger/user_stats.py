@@ -7,7 +7,7 @@ from time import sleep
 
 from pyinaturalist.node_api import get_identifications, get_observations, get_user_by_id
 from pyinaturalist.request_params import ICONIC_TAXA
-from rich.progress import track
+from rich.progress import Progress
 
 from inat_backlog_slogger.constants import ICONIC_TAXON, THROTTLING_DELAY, USER_STATS
 from inat_backlog_slogger.observations import load_observations, save_observations
@@ -41,35 +41,39 @@ def get_all_user_stats(user_ids, user_records=None):
     if isfile(USER_STATS):
         with open(USER_STATS) as f:
             user_info = {int(k): v for k, v in json.load(f).items()}
-        logger.info(f'{len(user_info)} partial results loaded')
+        logger.info(f'{len(user_info)} results loaded')
+    user_ids = [u for u in user_ids if u not in user_info]
 
     # Estimate how long this thing is gonna take
-    n_users_remaining = len(user_ids) - len(user_info)
     secs_per_user = (2 if user_records else 3) * THROTTLING_DELAY
-    est_time = n_users_remaining / (60 / secs_per_user) / 60
-    logger.info(f'Getting stats for {n_users_remaining} unique users')
+    est_time = len(user_ids) / (60 / secs_per_user) / 60
+    logger.info(f'Getting stats for {len(user_ids)} unique users')
     logger.warning(f'Estimated time, with default API request throttling: {est_time:.2f} hours')
 
     # Fetch results, and save partial results if interrupted
-    for user_id in track(user_ids):
-        if user_id in user_info:
-            continue
+    with Progress() as progress:
+        task = progress.add_task("[cyan]Downloading...", total=len(user_ids) + len(user_info))
+        progress.update(task, advance=len(user_info))
 
-        try:
-            user_info[user_id] = get_user_stats(user_id, iconic_taxon_id, user_records.get(user_id))
-        except (Exception, KeyboardInterrupt) as e:
-            logger.exception(e)
-            logger.error(f'Aborting and saving partial results to {USER_STATS}')
-            break
+        for user_id in user_ids:
+            try:
+                user_info[user_id] = get_user_stats(
+                    user_id, iconic_taxon_id, progress.console, user_records.get(user_id)
+                )
+            except (Exception, KeyboardInterrupt) as e:
+                logger.exception(e)
+                logger.error(f'Aborting and saving {len(user_info)} results to {USER_STATS}')
+                break
+            progress.update(task, advance=1)
 
     with open(USER_STATS, 'w') as f:
-        json.dump(user_info, f)
+        json.dump(user_info, f, default=str)
 
     return user_info
 
 
 # TODO: Store stats for multiple taxa in same file; will need additional checks & handling
-def get_user_stats(user_id, iconic_taxon_id, user=None):
+def get_user_stats(user_id, iconic_taxon_id, console, user=None):
     """Get info for an individual user"""
     logger.debug(f'Getting stats for user {user_id}')
     # Full user info will already be available if fetched from API, but not for CSV exports
@@ -94,6 +98,7 @@ def get_user_stats(user_id, iconic_taxon_id, user=None):
 
     user['iconic_taxon_rg_observations_count'] = user_observations['total_results']
     user['iconic_taxon_identifications_count'] = user_identifications['total_results']
+    console.print(f'Downloaded stats for user {user["login"]} ({user_id})')
     return user
 
 
@@ -101,4 +106,6 @@ def get_user_stats(user_id, iconic_taxon_id, user=None):
 if __name__ == '__main__':
     df = load_observations()
     df = append_user_stats(df)
+    df['user.created_at'] = df['user.created_at'].astype(str)
+    df['user.roles'] = df['user.roles'].astype(str)
     save_observations(df)

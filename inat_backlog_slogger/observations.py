@@ -85,6 +85,7 @@ def format_response(df):
     return df
 
 
+# TODO: Normalize datetimes to UTC, convert to datetime64
 def format_export(df):
     """Format an exported CSV file to be similar to API response format"""
     from inat_backlog_slogger.image_downloads import get_photo_id
