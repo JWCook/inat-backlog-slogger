@@ -79,7 +79,7 @@ IMAGE_DIR = join(DATA_DIR, 'images')
 IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
 MINIFIED_OBSERVATIONS = join(DATA_DIR, 'minified_observations.json')
 PROCESSED_OBSERVATIONS = join(DATA_DIR, 'combined-observations.parquet')
-REPORT_TEMPLATE = join(dirname(__file__), 'observation_template.html')
+REPORT_TEMPLATE = join(dirname(dirname(__file__)), 'template', 'observation_viewer.html')
 USER_STATS = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 
 THROTTLING_DELAY = 3.0

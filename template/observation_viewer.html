@@ -4,67 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-
+    <link rel="stylesheet" type="text/css" href="observation_viewer.css">
     <title>Unidentified Observations</title>
-    <style>
-        .container {
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-            transition: 0.3s;
-            padding: 2px 2px;
-            height:550px;
-            width:450px;
-            overflow: hidden;
-        }
-
-        .image_container {
-            padding: 2px 2px;
-            height:450px;
-            width:450px;
-            overflow: hidden;
-            position: relative;
-            display: inline-block;
-        }
-
-        .img-fit {
-            object-fit: cover;
-            min-height: 450px;
-            min-width: 450px;
-            max-height: 500px;
-            max-width: 500px;
-        }
-
-        .hover_container {
-            position: relative;
-            max-width: 100%;
-            height: auto;
-        }
-
-        .hover_container,
-        .hover_container * {
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .hover_container .hover_overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            background: rgba(0, 0, 0, 0.6);
-            color: #fff;
-            padding: 10px;
-            transition: all 0.4s ease-in-out 0s;
-        }
-
-        .hover_container:hover .hover_overlay,
-        .hover_container.active .hover_overlay {
-            opacity: 1;
-        }
-    </style>
   </head>
   <body>
     <div class="row">
@@ -76,7 +17,7 @@
                     <!--Image-->
                     <div class="image_container">
                         <a href="https://www.inaturalist.org/observations/{{ observation['id'] }}">
-                          <img src="{{ observation['photo.url'] }}" class="img-fit img-fluid mb-4">
+                          <img src="{{ observation['photo.url'] }}" class="img-fluid mb-4">
                         </a>
                     </div>
 
