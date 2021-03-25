@@ -5,8 +5,43 @@ from os.path import dirname
 import pandas as pd
 from jinja2 import Template
 
-from inat_backlog_slogger.constants import MINIFIED_OBSERVATIONS, RANKING_WEIGHTS, REPORT_TEMPLATE
+from inat_backlog_slogger.constants import JSON_OBSERVATIONS, RANKING_WEIGHTS, REPORT_TEMPLATE
 from inat_backlog_slogger.observations import load_observations
+from inat_backlog_slogger.image_downloads import get_image_url
+
+EXPORT_COLUMNS = [
+    'id',
+    'created_at',
+    'description',
+    'iconic_taxon',
+    'latitude',
+    'license',
+    'longitude',
+    'num_identification_agreements',
+    'num_identification_disagreements',
+    'observed_on',
+    'photo.id',
+    'photo.iqa_aesthetic',
+    'photo.iqa_technical',
+    'photo.medium_url',
+    'photo.original_url',
+    'place_guess',
+    'quality_grade',
+    'rank',
+    'tag_list',
+    'taxon.formatted_name',
+    'taxon.rank',
+    'updated_at',
+    'user.created_at',
+    'user.icon',
+    'user.iconic_taxon_identifications_count',
+    'user.iconic_taxon_rg_observations_count',
+    'user.id',
+    'user.identifications_count',
+    'user.login',
+    'user.observations_count',
+    'user.species_count',
+]
 
 logger = getLogger(__name__)
 
@@ -62,31 +97,36 @@ def ka_chunk(data, chunk_size):
         yield data[i : i + chunk_size]
 
 
-def load_minified_observations():
-    """Load minified observation data"""
-    return pd.read_json(MINIFIED_OBSERVATIONS)
+def load_json_observations():
+    """Load observation data from JSON"""
+    return pd.read_json(JSON_OBSERVATIONS)
 
 
-def save_minified_observations(df):
-    """Get minimal info for ranked and sorted observations"""
+def save_json_observations(df, top: int = None, bottom: int = None):
+    """Export a subset of columns into JSON from ranked and sorted observations"""
+    df = get_observation_subset(df, top, bottom)
 
     def get_default_photo(photos):
         return photos[0]['url'].rsplit('/', 1)[0]
 
-    df['taxon.rank'] = df['taxon.rank'].apply(lambda x: f'{x.title()}: ')
-    df['taxon'] = df['taxon.rank'] + df['taxon.name']
-    if 'photos' in df:
-        df['photo'] = df['photos'].apply(get_default_photo)
-    else:
-        df['photo'] = df['photo.url']
+    # df['taxon.rank'] = df['taxon.rank'].apply(lambda x: f'{x.title()}: ')
+    # df['taxon.formatted_name'] = df['taxon.rank'] + df['taxon.name']
+    df['taxon.formatted_name'] = df.apply(format_taxon_str, axis=1)
+    df['taxon.rank'] = df['taxon.rank'].apply(lambda x: x.title())
+    if 'photos' in df and 'photo.url' not in df:
+        df['photo.url'] = df['photos'].apply(get_default_photo)
+    df['photo.medium_url'] = df['photo.url'].apply(lambda x: get_image_url(x, 'medium'))
+    df['photo.original_url'] = df['photo.url'].apply(lambda x: get_image_url(x, 'original'))
 
-    df = df[['id', 'taxon', 'photo']]
-    df.to_json(MINIFIED_OBSERVATIONS)
+    df = df[EXPORT_COLUMNS]
+    df = df.rename(columns={col: col.replace('.', '_') for col in sorted(df.columns)})
+    df.to_json(JSON_OBSERVATIONS, orient='records')
+    logger.info(f'Written to {JSON_OBSERVATIONS}')
     return df
 
 
 if __name__ == '__main__':
     df = load_observations()
-    save_minified_observations(df)
+    save_json_observations(df)
     generate_report('example_reports/top_500.html', df, top=500)
     generate_report('example_reports/bottom_500.html', df, bottom=500)

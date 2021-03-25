@@ -18,6 +18,7 @@ setup(
         'pandas',
         'pyarrow',
         'pyinaturalist==0.13.0.dev221',
+        'requests-cache==0.6.0.dev1',
         'rich',
     ],
     extras_require={

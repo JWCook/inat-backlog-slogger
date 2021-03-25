@@ -77,8 +77,8 @@ CACHE_FILE = join(DATA_DIR, 'inat_requests.db')
 CSV_EXPORTS = join(DATA_DIR, 'observations-*.csv')
 IMAGE_DIR = join(DATA_DIR, 'images')
 IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
-MINIFIED_OBSERVATIONS = join(DATA_DIR, 'minified_observations.json')
-PROCESSED_OBSERVATIONS = join(DATA_DIR, 'combined-observations.parquet')
+JSON_OBSERVATIONS = join(DATA_DIR, 'observations.json')
+PROCESSED_OBSERVATIONS = join(DATA_DIR, 'observations.parquet')
 REPORT_TEMPLATE = join(dirname(dirname(__file__)), 'template', 'observation_viewer.html')
 USER_STATS = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 
