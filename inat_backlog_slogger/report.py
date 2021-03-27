@@ -6,8 +6,9 @@ import pandas as pd
 from jinja2 import Template
 
 from inat_backlog_slogger.constants import JSON_OBSERVATIONS, RANKING_WEIGHTS, REPORT_TEMPLATE
-from inat_backlog_slogger.observations import load_observations
 from inat_backlog_slogger.image_downloads import get_image_url
+from inat_backlog_slogger.observations import load_observations
+from inat_backlog_slogger.ranking import get_ranked_subset
 
 EXPORT_COLUMNS = [
     'id',
@@ -59,7 +60,7 @@ def format_taxon_str(row) -> str:
 
 def generate_report(file_path: str, df, top: int = None, bottom: int = None):
     """Generate an HTML report from the specified observations"""
-    df = get_observation_subset(df, top, bottom)
+    df = get_ranked_subset(df, top, bottom)
     df['ranking_values'] = df.apply(get_ranking_values, axis=1)
     df['taxon.formatted_name'] = df.apply(format_taxon_str, axis=1)
     observations = df.to_dict('records')
@@ -77,21 +78,6 @@ def generate_report(file_path: str, df, top: int = None, bottom: int = None):
     return df
 
 
-def get_observation_subset(df, top: int = None, bottom: int = None):
-    """Get highest or lowest-ranked items, if specified, and omit any that haven't been ranked"""
-    df = df[df['photo.iqa_technical'] != 0]
-    if top:
-        selection = f'top {top}'
-        df = df.iloc[:top].copy()
-    elif bottom:
-        selection = f'bottom {bottom}'
-        df = df.iloc[-bottom:].copy()
-    else:
-        selection = str(len(df))
-    logger.info(f'Generating report from {selection} observations')
-    return df
-
-
 def ka_chunk(data, chunk_size):
     for i in range(0, len(data), chunk_size):
         yield data[i : i + chunk_size]
@@ -104,7 +90,7 @@ def load_json_observations():
 
 def save_json_observations(df, top: int = None, bottom: int = None):
     """Export a subset of columns into JSON from ranked and sorted observations"""
-    df = get_observation_subset(df, top, bottom)
+    df = get_ranked_subset(df, top, bottom)
 
     def get_default_photo(photos):
         return photos[0]['url'].rsplit('/', 1)[0]

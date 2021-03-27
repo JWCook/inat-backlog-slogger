@@ -24,7 +24,7 @@ RANK_BY_NATURAL_LOG = [
 # Explicit datatypes for columns loaded from CSV
 # TODO: support glob patterns (num_*, *_count, *.id, etc.)
 DTYPES = {
-    'coordinates_obscured': bool,
+    'obscured': bool,
     'id': int,
     'latitude': float,
     'longitude': float,
@@ -44,7 +44,6 @@ DTYPES = {
     'user.journal_posts_count': int,
     'user.observations_count': int,
     'user.site_id': int,
-    'user.spam': bool,
     'user.species_count': int,
     'user.suspended': bool,
     # 'observed_on': 'datetime64',
@@ -53,20 +52,32 @@ DTYPES = {
     # 'user.created_at': 'datetime64',
 }
 
-# CSV columns to drop or column name substrings to replace
+# Columns to drop
 DROP_COLUMNS = [
+    'cached_votes_total',
+    'flags',
+    'oauth_application_id',
     'observed_on_string',
     'positioning_method',
     'positioning_device',
     'scientific',
+    'spam',
     'time_observed_at',
     'time_zone',
+    'user.spam',
+    'user.suspended',
     'user.universal_search_rank',
+    'uuid',
 ]
+
+# Columns from CSV export rename to match API response
 RENAME_COLUMNS = {
     'common_name': 'taxon.preferred_common_name',
+    'coordinates_obscured': 'obscured',
     'image_url': 'photo.url',
+    'license': 'license_code',
     'taxon_': 'taxon.',
+    'url': 'uri',
     'user_': 'user.',
     '_name': '',
 }

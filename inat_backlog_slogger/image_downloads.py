@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utilities to download observation images for image quality assessment"""
+# TODO: Persist list of downloaded images, and don't re-download invalid/0KB images
 import asyncio
 import re
 from datetime import datetime
@@ -42,7 +43,6 @@ async def download_images(urls, throttle=True):
     logger.info(f'Downloaded {len(urls)} images in {datetime.now() - start_time}s')
 
 
-# TODO: This is pretty slow for large datasets. Maybe save list in between runs?
 def check_downloaded_images(urls):
     """Get local file paths for URLs, and remove images that we've already downloaded"""
     makedirs(IMAGE_DIR, exist_ok=True)
@@ -52,7 +52,8 @@ def check_downloaded_images(urls):
     downloaded_images = listdir(IMAGE_DIR)
 
     to_download = {
-        url: path for url, path in track(list(to_download.items()))
+        url: path
+        for url, path in track(list(to_download.items()))
         if basename(path) not in downloaded_images
     }
     console.print(

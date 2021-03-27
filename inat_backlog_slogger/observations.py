@@ -47,8 +47,7 @@ def load_observations_from_query(iconic_taxon=ICONIC_TAXON, days=60, **request_p
         page='all',
         **request_params,
     )
-    df = to_dataframe(response['results'])
-    df = format_response(df)
+    df = format_response(response)
     save_observations(df)
     return df
 
@@ -77,8 +76,9 @@ def format_columns(df):
     return df.fillna('')
 
 
-def format_response(df):
-    """Some additional formatting for API response data"""
+def format_response(response):
+    """Convert and format API response data into a dataframe"""
+    df = to_dataframe(response['results'])
     df['photo.url'] = df['photos'].apply(lambda x: x[0]['url'])
     df['photo.id'] = df['photos'].apply(lambda x: x[0]['id'])
     df = format_columns(df)
@@ -105,9 +105,46 @@ def format_export(df):
     df['taxon.rank'] = df.apply(_get_min_rank, axis=1)
     df['taxon.name'] = df.apply(lambda x: x.get(f"taxon.{x['taxon.rank']}"), axis=1)
 
+    # Format coordinates
+    df['location'] = df.apply(lambda x: [x['latitude'], x['longitude']], axis=1)
+    df = df.drop(columns=['latitude', 'longitude'])
+
     # Add some other missing columns
     df['photo.id'] = df['photo.url'].apply(get_photo_id)
     return df
+
+
+def get_observation_subset(df, top: int = None, bottom: int = None):
+    """Get highest or lowest-ranked items, if specified"""
+    if top:
+        selection = f'top {top}'
+        df = df.iloc[:top].copy()
+    elif bottom:
+        selection = f'bottom {bottom}'
+        df = df.iloc[-bottom:].copy()
+    else:
+        selection = str(len(df))
+    logger.info(f'Selecting {selection} observations')
+    return df
+
+
+def get_updated_observations(df, top: int = None, bottom: int = None):
+    """Get updated info for recently updated observations"""
+    last_updated = df['updated_at'].max()
+    df = get_observation_subset(df, top, bottom)
+    response = get_observations(id=list(df['id']), updated_since=last_updated)
+    return format_response(response)
+
+
+def update_observations(df, top: int = None, bottom: int = None):
+    """Update local observation data with any remote changes since last update"""
+    updated = get_updated_observations(df, top, bottom)
+    return df.merge(updated, on='id', how='left')
+
+
+def iloc(df, loc):
+    """Get the specified dataframe row as a dict"""
+    return dict(sorted(df.iloc[loc].items()))
 
 
 def _fixna(df):

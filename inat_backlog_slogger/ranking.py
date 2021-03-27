@@ -1,9 +1,17 @@
 #!/usr/bin/env python
 """Utilities for ranking observation data"""
+from logging import getLogger
+
 import numpy as np
 
 from inat_backlog_slogger.constants import RANK_BY_NATURAL_LOG, RANKING_WEIGHTS
-from inat_backlog_slogger.observations import load_observations, save_observations
+from inat_backlog_slogger.observations import (
+    get_observation_subset,
+    load_observations,
+    save_observations,
+)
+
+logger = getLogger(__name__)
 
 
 def rank_observations(df):
@@ -20,6 +28,11 @@ def rank_observations(df):
     df['rank'] = sum([normalize(key, df[key]) * weight for key, weight in RANKING_WEIGHTS.items()])
     df['rank'].fillna(0)
     return df.sort_values('rank', ascending=False)
+
+
+def get_ranked_subset(df, top: int = None, bottom: int = None):
+    """Get highest or lowest-ranked items, if specified, and omit any that haven't been ranked"""
+    return get_observation_subset(df[df['photo.iqa_technical'] != 0], top, bottom)
 
 
 # Apply ranking to processed observations
