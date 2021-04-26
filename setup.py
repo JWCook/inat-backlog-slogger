@@ -23,7 +23,7 @@ setup(
     ],
     extras_require={
         'dev': [
-            'black==20.8b1',
+            'black==21.4b0',
             'flake8',
             'isort',
             'mypy',

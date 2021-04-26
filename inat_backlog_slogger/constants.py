@@ -83,14 +83,16 @@ RENAME_COLUMNS = {
 }
 
 # Files & directories; different data sources are stored separately to support incremental results
+PROJECT_DIR = dirname(dirname(__file__))
 DATA_DIR = join(expanduser('~'), 'Downloads')
 CACHE_FILE = join(DATA_DIR, 'inat_requests.db')
 CSV_EXPORTS = join(DATA_DIR, 'observations-*.csv')
 IMAGE_DIR = join(DATA_DIR, 'images')
 IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
 JSON_OBSERVATIONS = join(DATA_DIR, 'observations.json')
+JSON_OBSERVATION_EXPORT = join(dirname(PROJECT_DIR), 'inat-backlog-viewer', 'assets', 'observations.json')
 PROCESSED_OBSERVATIONS = join(DATA_DIR, 'observations.parquet')
-REPORT_TEMPLATE = join(dirname(dirname(__file__)), 'template', 'observation_viewer.html')
+REPORT_TEMPLATE = join(PROJECT_DIR, 'template', 'observation_viewer.html')
 USER_STATS = join(DATA_DIR, f'user_stats_{ICONIC_TAXON.lower()}.json')
 
 THROTTLING_DELAY = 3.0

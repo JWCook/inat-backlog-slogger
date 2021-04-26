@@ -6,11 +6,18 @@ from os.path import dirname
 import pandas as pd
 from jinja2 import Template
 
-from inat_backlog_slogger.constants import JSON_OBSERVATIONS, RANKING_WEIGHTS, REPORT_TEMPLATE
+from inat_backlog_slogger.constants import (
+    JSON_OBSERVATIONS,
+    JSON_OBSERVATION_EXPORT,
+    RANKING_WEIGHTS,
+    REPORT_TEMPLATE,
+)
 from inat_backlog_slogger.image_downloads import get_image_url
 from inat_backlog_slogger.observations import load_observations
 from inat_backlog_slogger.ranking import get_ranked_subset
+from pyinaturalist.response_format import try_datetime
 
+DATETIME_FORMAT = '%Y-%m-%d %H:%M'
 EXPORT_COLUMNS = [
     'id',
     'created_at',
@@ -25,6 +32,7 @@ EXPORT_COLUMNS = [
     'photo.id',
     'photo.iqa_aesthetic',
     'photo.iqa_technical',
+    # 'photo.small_url',
     'photo.medium_url',
     'photo.original_url',
     'place_guess',
@@ -35,6 +43,7 @@ EXPORT_COLUMNS = [
     'taxon.id',
     'taxon.formatted_name',
     'taxon.rank',
+    'title',
     'updated_at',
     'user.created_at',
     'user.icon',
@@ -60,10 +69,41 @@ def get_ranking_values(row):
     return {col: f'{row[col]:.3f}' for col in ['rank'] + list(RANKING_WEIGHTS)}
 
 
+def format_datetime(value):
+    return try_datetime(value).strftime(DATETIME_FORMAT)
+
+
 def format_taxon_str(row) -> str:
     """Format a taxon name including common name, if available"""
     common_name = row.get('taxon.preferred_common_name')
     return f"{row['taxon.name']}" + (f' ({common_name})' if common_name else '')
+
+
+"""
+<b>{row['taxon.rank']}:&nbsp;</b>
+<a href="https://www.inaturalist.org/taxa/{row['taxon.id']}" title="{taxon}">{taxon}</a>
+"""
+"""
+<b>Observed by:</b>
+<a href="https://www.inaturalist.org/people/{row['user.id']}">{row['user_login'] or 'unknown'}</a>
+on {{ row['observed_on'] }}
+"""
+
+
+def format_title(row):
+    taxon = format_taxon_str(row)
+    return f"""
+    <b>{row['taxon.rank']}:&nbsp;</b><br />
+    <a href="'https://www.inaturalist.org/taxa/{row['taxon.id']}'" title="{taxon}">{taxon}</a>
+    """
+
+
+def format_description(row):
+    return f"""
+    <b>Observed by:</b>
+    <a href="https://www.inaturalist.org/people/{row['user.id']}">{row['user.login'] or 'unknown'}</a>
+    on {row['observed_on']}
+    """
 
 
 def generate_report(file_path: str, df, top: int = None, bottom: int = None):
@@ -97,7 +137,7 @@ def load_json_observations():
     return pd.read_json(JSON_OBSERVATIONS)
 
 
-def save_json_observations(df, top: int = None, bottom: int = None):
+def save_json_observations(df, path=JSON_OBSERVATIONS, top: int = None, bottom: int = None):
     """Export a subset of columns into JSON from ranked and sorted observations"""
     df = get_ranked_subset(df, top, bottom)
     df['ranking_values'] = df.apply(get_ranking_values, axis=1)
@@ -110,18 +150,23 @@ def save_json_observations(df, top: int = None, bottom: int = None):
     df['taxon.rank'] = df['taxon.rank'].apply(lambda x: x.title())
     if 'photos' in df and 'photo.url' not in df:
         df['photo.url'] = df['photos'].apply(get_default_photo)
+    df['photo.small_url'] = df['photo.url'].apply(lambda x: get_image_url(x, 'medium'))
     df['photo.medium_url'] = df['photo.url'].apply(lambda x: get_image_url(x, 'medium'))
     df['photo.original_url'] = df['photo.url'].apply(lambda x: get_image_url(x, 'original'))
+    df['observed_on'] = df['observed_on'].apply(format_datetime)
+    df['created_at'] = df['created_at'].apply(format_datetime)
+    df['title'] = df.apply(format_title, axis=1)
+    df['description'] = df.apply(format_description, axis=1)
 
     df = df[EXPORT_COLUMNS]
     df = df.rename(columns={col: col.replace('.', '_') for col in sorted(df.columns)})
-    df.to_json(JSON_OBSERVATIONS, orient='records', indent=2)
-    logger.info(f'Written to {JSON_OBSERVATIONS}')
+    df.to_json(path, orient='records', indent=2)
+    logger.info(f'Written to {path}')
     return df
 
 
 if __name__ == '__main__':
     df = load_observations()
-    save_json_observations(df, top=20)
+    save_json_observations(df, path=JSON_OBSERVATION_EXPORT, top=20)
     # generate_report('example_reports/top_500.html', df, top=500)
     # generate_report('example_reports/bottom_500.html', df, bottom=500)
