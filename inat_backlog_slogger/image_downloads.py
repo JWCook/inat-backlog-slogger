@@ -2,17 +2,18 @@
 """Utilities to download observation images for image quality assessment"""
 # TODO: Persist list of downloaded images, and don't re-download invalid/0KB images
 import asyncio
+import json
 import re
 from datetime import datetime
 from logging import getLogger
 from os import listdir, makedirs
-from os.path import basename, join
+from os.path import basename, isfile, join
 
 import aiofiles
 import aiohttp
 from rich.progress import Console, Progress, track
 
-from inat_backlog_slogger.constants import IMAGE_DIR, THROTTLING_DELAY
+from inat_backlog_slogger.constants import IMAGE_DIR, IMAGE_DL_LOG, THROTTLING_DELAY
 from inat_backlog_slogger.observations import load_observations
 
 PHOTO_ID_PATTERN = re.compile(r'.*photos/(.*)/.*\.(\w+)')
@@ -43,6 +44,26 @@ async def download_images(urls, throttle=True):
     logger.info(f'Downloaded {len(urls)} images in {datetime.now() - start_time}s')
 
 
+def load_image_list():
+    """Load or generate list of downloaded images"""
+    if isfile(IMAGE_DL_LOG):
+        with open(IMAGE_DL_LOG) as f:
+            log = json.load(f)
+        return log['downloaded'], log['invalid']
+    return [], []
+
+
+def save_image_list(downloaded=None, invalid=None):
+    """Save list of downloaded images"""
+    log = {
+        'downloaded': downloaded or [],
+        'invalid': invalid or [],
+    }
+    with open(IMAGE_DL_LOG, 'w') as f:
+        json.dump(log, f)
+
+
+
 def check_downloaded_images(urls):
     """Get local file paths for URLs, and remove images that we've already downloaded"""
     makedirs(IMAGE_DIR, exist_ok=True)
@@ -60,7 +81,7 @@ def check_downloaded_images(urls):
         f'{len(urls) - len(to_download)} images already downloaded, ',
         f'{len(to_download)} remaining',
     )
-    return to_download
+    return downloaded_images, to_download
 
 
 async def download_image(

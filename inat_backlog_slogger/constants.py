@@ -88,6 +88,7 @@ DATA_DIR = join(expanduser('~'), 'Downloads')
 CACHE_FILE = join(DATA_DIR, 'inat_requests.db')
 CSV_EXPORTS = join(DATA_DIR, 'observations-*.csv')
 IMAGE_DIR = join(DATA_DIR, 'images')
+IMAGE_DL_LOG = join(DATA_DIR, 'image_downloads.json')
 IQA_REPORTS = [join(DATA_DIR, 'iqa_aesthetic.json'), join(DATA_DIR, 'iqa_technical.json')]
 JSON_OBSERVATIONS = join(DATA_DIR, 'observations.json')
 JSON_OBSERVATION_EXPORT = join(dirname(PROJECT_DIR), 'inat-backlog-viewer', 'assets', 'observations.json')
