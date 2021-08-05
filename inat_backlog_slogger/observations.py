@@ -5,10 +5,10 @@ from os import makedirs
 
 import pandas as pd
 import requests_cache
-from pyinaturalist.node_api import get_observations
-from pyinaturalist.request_params import RANKS
-from pyinaturalist.response_format import try_datetime
-from pyinaturalist.response_utils import load_exports, to_dataframe
+from pyinaturalist.constants import RANKS
+from pyinaturalist.converters import try_datetime
+from pyinaturalist.v1 import get_observations
+from pyinaturalist_convert import load_exports, to_dataframe
 
 from inat_backlog_slogger.constants import (
     CACHE_FILE,
@@ -106,6 +106,7 @@ def format_export(df):
     df['taxon.name'] = df.apply(lambda x: x.get(f"taxon.{x['taxon.rank']}"), axis=1)
 
     # Format coordinates
+    # TODO: Convert API results to latitude, longitude instead
     df['location'] = df.apply(lambda x: [x['latitude'], x['longitude']], axis=1)
     df = df.drop(columns=['latitude', 'longitude'])
 

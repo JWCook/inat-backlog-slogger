@@ -5,8 +5,8 @@ from logging import getLogger
 from os.path import isfile
 from time import sleep
 
-from pyinaturalist.node_api import get_identifications, get_observations, get_user_by_id
-from pyinaturalist.request_params import ICONIC_TAXA
+from pyinaturalist.constants import ICONIC_TAXA
+from pyinaturalist.v1 import get_identifications, get_observations, get_user_by_id
 from rich.progress import Progress
 
 from inat_backlog_slogger.constants import ICONIC_TAXON, THROTTLING_DELAY, USER_STATS

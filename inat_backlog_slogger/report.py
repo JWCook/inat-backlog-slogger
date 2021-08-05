@@ -6,6 +6,8 @@ from os.path import dirname
 import pandas as pd
 from jinja2 import Template
 
+from pyinaturalist.converters import try_datetime
+
 from inat_backlog_slogger.constants import (
     JSON_OBSERVATIONS,
     JSON_OBSERVATION_EXPORT,
@@ -15,7 +17,6 @@ from inat_backlog_slogger.constants import (
 from inat_backlog_slogger.image_downloads import get_image_url
 from inat_backlog_slogger.observations import load_observations
 from inat_backlog_slogger.ranking import get_ranked_subset
-from pyinaturalist.response_format import try_datetime
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M'
 EXPORT_COLUMNS = [
