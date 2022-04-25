@@ -1,5 +1,6 @@
 *.py[cod]
 downloads/
+*.parquet
 
 # C extensions
 *.so
@@ -8,6 +9,7 @@ downloads/
 *.egg
 *.egg-info
 .installed.cfg
+.venv
 .mypy_cache/
 bin
 build

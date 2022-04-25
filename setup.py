@@ -14,15 +14,15 @@ setup(
     install_requires=[
         'aiofiles',
         'aiohttp',
+        'beautifulsoup4',
         'jinja2',
-        'pyinaturalist~=0.14.1',
-        'pyinaturalist-convert[parquet]>=0.1.0',
-        'requests-cache~=0.7.2',
+        'pyinaturalist~=0.16.0',
+        'pyinaturalist-convert[parquet]~=0.2.2',
         'rich',
     ],
     extras_require={
         'dev': [
-            'black==21.7b0',
+            'black',
             'flake8',
             'isort',
             'mypy',

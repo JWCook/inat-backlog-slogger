@@ -5,12 +5,11 @@ from os.path import dirname
 
 import pandas as pd
 from jinja2 import Template
-
 from pyinaturalist.converters import try_datetime
 
 from inat_backlog_slogger.constants import (
-    JSON_OBSERVATIONS,
     JSON_OBSERVATION_EXPORT,
+    JSON_OBSERVATIONS,
     RANKING_WEIGHTS,
     REPORT_TEMPLATE,
 )

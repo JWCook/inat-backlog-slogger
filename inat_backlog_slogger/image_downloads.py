@@ -44,7 +44,7 @@ async def download_images(urls, throttle=True):
 
 
 def check_downloaded_images(urls):
-    """Get local file paths for URLs, and remove images that we've already downloaded"""
+    """Get local file paths for URLs, and skip images that we've already downloaded"""
     makedirs(IMAGE_DIR, exist_ok=True)
     console = Console()
     console.print('Checking for completed downloads')

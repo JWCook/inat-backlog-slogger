@@ -1,18 +1,8 @@
 #!/usr/bin/env python3
-"""Example to get photo metadata from observation photos, which is currently not available in
-the API and must be done by web scraping.
+"""Borrowed from:
+https://github.com/niconoe/pyinaturalist/blob/main/examples/observation_photo_metadata.py
 
-Note that web scraping in general is not very reliable and is prone to breakage, so this script
-may or may not work without modification. See ``examples/sample_data/photo_info.html`` for an
-example of photo info HTML at time of writing.
-
-Also note that photo metadata is only visible to logged in users, so an access token is required.
-For more details on authentication, see:
-* https://www.inaturalist.org/pages/api+reference#auth
-* https://pyinaturalist.readthedocs.io/en/latest/general_usage.html#authentication
-
-Extra dependencies:
-    `pip install beautifulsoup4`
+TODO: If this were a bit more polished it could maybe be moved to pyinaturalist-convert
 """
 from pprint import pprint
 
@@ -20,15 +10,6 @@ import requests
 from bs4 import BeautifulSoup
 from pyinaturalist.node_api import get_observation
 from pyinaturalist.rest_api import get_access_token
-
-# !! Replace values here !!
-OBSERVATION_IDS = [99]
-ACCESS_TOKEN = get_access_token(
-    username='',
-    password='',
-    app_id='',
-    app_secret='',
-)
 
 IGNORE_ATTRIBUTES = ['Associated observations', 'Sizes']
 PHOTO_INFO_BASE_URL = 'https://www.inaturalist.org/photos'
@@ -63,7 +44,11 @@ def get_observation_photo_metadata(observation_id, access_token):
 
 
 if __name__ == '__main__':
+    # Get creds from keyring or environment variables
+    access_token = get_access_token()
     photo_metadata = {}
-    for id in OBSERVATION_IDS:
-        photo_metadata[id] = get_observation_photo_metadata(id, ACCESS_TOKEN)
+    test_observation_ids = [98, 99]
+
+    for id in test_observation_ids:
+        photo_metadata[id] = get_observation_photo_metadata(id, access_token)
     pprint(photo_metadata, indent=4)
